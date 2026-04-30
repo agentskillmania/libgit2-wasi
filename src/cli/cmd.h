@@ -34,6 +34,7 @@ extern int cmd_help(int argc, char **argv);
 extern int cmd_index_pack(int argc, char **argv);
 extern int cmd_init(int argc, char **argv);
 extern int cmd_add(int argc, char **argv);
+extern int cmd_commit(int argc, char **argv);
 extern int cmd_status(int argc, char **argv);
 
 #endif /* CLI_cmd_h__ */

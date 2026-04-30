@@ -25,6 +25,7 @@ CATEGORIES=(
     "hash-object"
     "cat-file"
     "add"
+    "commit"
     "status"
     "clone-local"
     "clone-https"
@@ -179,6 +180,44 @@ test_add() {
     cmp_ok "$_EXIT" "!=" "0" "add nonexistent file fails"
 }
 
+# ========================= Commit =========================
+
+test_commit() {
+    plan 7
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/hello.txt "hello world"
+
+    # Initial commit
+    git2_run_in repo add hello.txt
+    git2_run_in repo commit -m "initial"
+    is "$_EXIT" "0" "git commit succeeds"
+    like "$_STDOUT" "\\[main" "commit shows branch name"
+    like "$_STDOUT" "initial" "commit shows message"
+
+    # Second commit
+    mkfile repo/world.txt "world"
+    git2_run_in repo add world.txt
+    git2_run_in repo commit -m "add world"
+    is "$_EXIT" "0" "second commit succeeds"
+
+    # Commit without message
+    git2_run_in repo commit
+    cmp_ok "$_EXIT" "!=" "0" "commit without message fails"
+
+    # Commit with no changes
+    git2_run_in repo commit -m "empty"
+    cmp_ok "$_EXIT" "!=" "0" "commit with no changes fails"
+
+    # Quiet mode
+    mkfile repo/q.txt "q"
+    git2_run_in repo add q.txt
+    git2_run_in repo commit -q -m "quiet"
+    unlike "$_STDOUT" "\\[main" "quiet commit produces no summary"
+}
+
 # ========================= Status =========================
 
 test_status() {
@@ -315,6 +354,7 @@ run_category() {
         hash-object)  test_hash_object ;;
         cat-file)     test_cat_file ;;
         add)          test_add ;;
+        commit)       test_commit ;;
         status)       test_status ;;
         clone-local)  test_clone_local ;;
         clone-https)  test_clone_https ;;
