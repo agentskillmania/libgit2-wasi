@@ -24,6 +24,7 @@ CATEGORIES=(
     "config"
     "hash-object"
     "cat-file"
+    "checkout"
     "add"
     "commit"
     "log"
@@ -157,6 +158,37 @@ test_cat_file() {
     git2_run_in repo cat-file -p "$sha"
     is "$_EXIT" "0" "cat-file -p succeeds"
     is "$_STDOUT" "test content for cat-file" "cat-file -p shows blob content"
+}
+
+# ========================= Checkout =========================
+
+test_checkout() {
+    plan 5
+
+    git2_run init /co-repo
+    git2_run_in co-repo config --add user.name "Test"
+    git2_run_in co-repo config --add user.email "test@test.com"
+    mkfile co-repo/f.txt "first"
+    git2_run_in co-repo add f.txt
+    git2_run_in co-repo commit -m "first"
+
+    # Create branch and switch
+    git2_run_in co-repo branch feature
+    git2_run_in co-repo checkout feature
+    is "$_EXIT" "0" "checkout to existing branch succeeds"
+    like "$_STDOUT" "Switched to branch" "checkout prints switch message"
+
+    # Verify current branch via branch list
+    git2_run_in co-repo branch
+    like "$_STDOUT" "\\* feature" "feature is now current"
+
+    # Switch back
+    git2_run_in co-repo checkout master
+    is "$_EXIT" "0" "checkout back to master succeeds"
+
+    # Create new branch with -b and switch
+    git2_run_in co-repo checkout -b hotfix
+    is "$_EXIT" "0" "checkout -b creates and switches"
 }
 
 # ========================= Add =========================
@@ -568,6 +600,7 @@ run_category() {
         config)       test_config ;;
         hash-object)  test_hash_object ;;
         cat-file)     test_cat_file ;;
+        checkout)     test_checkout ;;
         add)          test_add ;;
         commit)       test_commit ;;
         log)          test_log ;;

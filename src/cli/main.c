@@ -32,6 +32,7 @@ const cli_opt_spec cli_common_opts[] = {
 const cli_cmd_spec cli_cmds[] = {
 	{ "blame",       cmd_blame,       "Show the origin of each line of a file" },
 	{ "cat-file",    cmd_cat_file,    "Display an object in the repository" },
+	{ "checkout",   cmd_checkout,   "Switch branches or restore files" },
 	{ "clone",       cmd_clone,       "Clone a repository into a new directory" },
 	{ "config",      cmd_config,      "View or set configuration values " },
 	{ "hash-object", cmd_hash_object, "Hash a raw object and product its object ID" },
