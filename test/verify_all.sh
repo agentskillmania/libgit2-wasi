@@ -26,6 +26,7 @@ CATEGORIES=(
     "cat-file"
     "add"
     "commit"
+    "log"
     "status"
     "clone-local"
     "clone-https"
@@ -218,6 +219,46 @@ test_commit() {
     unlike "$_STDOUT" "\\[main" "quiet commit produces no summary"
 }
 
+# ========================= Log =========================
+
+test_log() {
+    plan 5
+
+    if ! command -v git &>/dev/null; then
+        skip "native git not available" 5
+        return
+    fi
+
+    mkdir -p "$_TEST_TMPDIR/log-repo"
+    printf "hello\n" > "$_TEST_TMPDIR/log-repo/file.txt"
+    (
+        cd "$_TEST_TMPDIR/log-repo"
+        git init --initial-branch=main 2>/dev/null
+        git config user.name "test" 2>/dev/null
+        git config user.email "test@test.com" 2>/dev/null
+        git add . 2>/dev/null
+        git commit -m "first" 2>/dev/null
+        echo "world" >> file.txt
+        git add . 2>/dev/null
+        git commit -m "second" 2>/dev/null
+    )
+
+    # Default log
+    git2_run_in log-repo log
+    is "$_EXIT" "0" "git log succeeds"
+    like "$_STDOUT" "commit" "log shows commit header"
+    like "$_STDOUT" "Author:" "log shows author"
+
+    # Oneline
+    git2_run_in log-repo log --oneline
+    like "$_STDOUT" "first" "oneline shows first commit message"
+
+    # Count
+    local lines
+    lines=$(echo "$_STDOUT" | wc -l | tr -d ' ')
+    cmp_ok "$lines" "-ge" "2" "log shows at least 2 commits"
+}
+
 # ========================= Status =========================
 
 test_status() {
@@ -355,6 +396,7 @@ run_category() {
         cat-file)     test_cat_file ;;
         add)          test_add ;;
         commit)       test_commit ;;
+        log)          test_log ;;
         status)       test_status ;;
         clone-local)  test_clone_local ;;
         clone-https)  test_clone_https ;;
