@@ -807,7 +807,9 @@ static int futils__rmdir_recurs_foreach(void *opaque, git_str *path)
 			return error;
 
 		if ((error = p_rmdir(path->ptr)) < 0) {
-			if ((data->flags & GIT_RMDIR_SKIP_NONEMPTY) != 0 &&
+			if (errno == ENOSYS || errno == EINVAL)
+				error = 0; /* WASI: rmdir not supported */
+			else if ((data->flags & GIT_RMDIR_SKIP_NONEMPTY) != 0 &&
 				(errno == ENOTEMPTY || errno == EEXIST || errno == EBUSY))
 				error = 0;
 			else
@@ -837,7 +839,7 @@ static int futils__rmdir_empty_parent(void *opaque, const char *path)
 	else if (p_rmdir(path) < 0) {
 		int en = errno;
 
-		if (en == ENOENT || en == ENOTDIR) {
+		if (en == ENOENT || en == ENOTDIR || en == ENOSYS || en == EINVAL) {
 			/* do nothing */
 		} else if ((data->flags & GIT_RMDIR_SKIP_NONEMPTY) == 0 &&
 			en == EBUSY) {
