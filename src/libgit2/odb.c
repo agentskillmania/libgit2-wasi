@@ -213,11 +213,17 @@ int git_odb__hashfd(
 	git_oid_t oid_type)
 {
 	size_t hdr_len;
-	char hdr[64], buffer[GIT_BUFSIZE_FILEIO];
+	char hdr[64];
+	char *buffer;
 	git_hash_ctx ctx;
 	git_hash_algorithm_t algorithm;
 	ssize_t read_len = 0;
 	int error = 0;
+
+	/* WASI: heap-allocate to avoid large stack frames causing issues. */
+	buffer = git__malloc(GIT_BUFSIZE_FILEIO);
+	if (buffer == NULL)
+		return -1;
 
 	if (!git_object_typeisloose(object_type)) {
 		git_error_set(GIT_ERROR_INVALID, "invalid object type for hash");
@@ -239,7 +245,7 @@ int git_odb__hashfd(
 	if ((error = git_hash_update(&ctx, hdr, hdr_len)) < 0)
 		goto done;
 
-	while (size > 0 && (read_len = p_read(fd, buffer, sizeof(buffer))) > 0) {
+	while (size > 0 && (read_len = p_read(fd, buffer, GIT_BUFSIZE_FILEIO)) > 0) {
 		if ((error = git_hash_update(&ctx, buffer, read_len)) < 0)
 			goto done;
 
@@ -264,6 +270,7 @@ int git_odb__hashfd(
 
 done:
 	git_hash_ctx_cleanup(&ctx);
+	git__free(buffer);
 	return error;
 }
 

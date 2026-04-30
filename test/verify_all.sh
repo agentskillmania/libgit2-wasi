@@ -24,6 +24,7 @@ CATEGORIES=(
     "config"
     "hash-object"
     "cat-file"
+    "add"
     "status"
     "clone-local"
     "clone-https"
@@ -147,6 +148,35 @@ test_cat_file() {
     git2_run_in repo cat-file -p "$sha"
     is "$_EXIT" "0" "cat-file -p succeeds"
     is "$_STDOUT" "test content for cat-file" "cat-file -p shows blob content"
+}
+
+# ========================= Add =========================
+
+test_add() {
+    plan 5
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/file1.txt "content1"
+    mkfile repo/file2.txt "content2"
+
+    # Add single file
+    git2_run_in repo add file1.txt
+    is "$_EXIT" "0" "git add single file succeeds"
+
+    # Add second file
+    git2_run_in repo add file2.txt
+    is "$_EXIT" "0" "git add second file succeeds"
+
+    # Verify staged via status
+    git2_run_in repo status -s
+    like "$_STDOUT" "A  file1.txt" "file1 shows as staged"
+    like "$_STDOUT" "A  file2.txt" "file2 shows as staged"
+
+    # Add nonexistent file
+    git2_run_in repo add nonexistent.txt
+    cmp_ok "$_EXIT" "!=" "0" "add nonexistent file fails"
 }
 
 # ========================= Status =========================
@@ -284,6 +314,7 @@ run_category() {
         config)       test_config ;;
         hash-object)  test_hash_object ;;
         cat-file)     test_cat_file ;;
+        add)          test_add ;;
         status)       test_status ;;
         clone-local)  test_clone_local ;;
         clone-https)  test_clone_https ;;
