@@ -27,6 +27,10 @@ CATEGORIES=(
     "add"
     "commit"
     "log"
+    "branch"
+    "tag"
+    "show"
+    "diff"
     "status"
     "clone-local"
     "clone-https"
@@ -259,6 +263,106 @@ test_log() {
     cmp_ok "$lines" "-ge" "2" "log shows at least 2 commits"
 }
 
+# ========================= Branch =========================
+
+test_branch() {
+    plan 5
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/f.txt "f"
+    git2_run_in repo add f.txt
+    git2_run_in repo commit -m "init"
+
+    # List (should show default branch)
+    git2_run_in repo branch
+    like "$_STDOUT" "master" "branch list shows default branch"
+
+    # Create branch
+    git2_run_in repo branch feature
+    is "$_EXIT" "0" "branch create succeeds"
+
+    # List again (should show both)
+    git2_run_in repo branch
+    like "$_STDOUT" "feature" "branch list shows feature"
+    like "$_STDOUT" "\\* master" "master is current branch"
+}
+
+# ========================= Tag =========================
+
+test_tag() {
+    plan 4
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/f.txt "f"
+    git2_run_in repo add f.txt
+    git2_run_in repo commit -m "init"
+
+    # List (empty)
+    git2_run_in repo tag
+    is "$_EXIT" "0" "tag list succeeds"
+    is "$_STDOUT" "" "no tags initially"
+
+    # Create tag
+    git2_run_in repo tag v1.0
+    is "$_EXIT" "0" "tag create succeeds"
+
+    # List
+    git2_run_in repo tag
+    like "$_STDOUT" "v1.0" "tag list shows v1.0"
+}
+
+# ========================= Show =========================
+
+test_show() {
+    plan 3
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/f.txt "hello"
+    git2_run_in repo add f.txt
+    git2_run_in repo commit -m "initial"
+
+    git2_run_in repo show
+    is "$_EXIT" "0" "show succeeds"
+    like "$_STDOUT" "commit" "show has commit header"
+    like "$_STDOUT" "initial" "show has commit message"
+}
+
+# ========================= Diff =========================
+
+test_diff() {
+    plan 4
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/f.txt "hello"
+    git2_run_in repo add f.txt
+    git2_run_in repo commit -m "init"
+
+    # Modify file
+    mkfile repo/f.txt "hello world"
+
+    # Unstaged diff
+    git2_run_in repo diff
+    is "$_EXIT" "0" "diff succeeds"
+    like "$_STDOUT" "hello world" "diff shows new content"
+
+    # Stat format (unstaged)
+    git2_run_in repo diff --stat
+    like "$_STDOUT" "f.txt" "stat shows file info"
+
+    # Stage and show cached diff
+    git2_run_in repo add f.txt
+    git2_run_in repo diff --cached
+    like "$_STDOUT" "hello world" "cached diff shows changes"
+}
+
 # ========================= Status =========================
 
 test_status() {
@@ -397,6 +501,10 @@ run_category() {
         add)          test_add ;;
         commit)       test_commit ;;
         log)          test_log ;;
+        branch)       test_branch ;;
+        tag)          test_tag ;;
+        show)         test_show ;;
+        diff)         test_diff ;;
         status)       test_status ;;
         clone-local)  test_clone_local ;;
         clone-https)  test_clone_https ;;

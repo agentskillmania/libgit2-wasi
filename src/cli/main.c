@@ -40,8 +40,12 @@ const cli_cmd_spec cli_cmds[] = {
 	{ "log",         cmd_log,         "Show commit logs" },
 	{ "init",        cmd_init,        "Create a new git repository" },
 	{ "add",         cmd_add,         "Add file contents to the index" },
+	{ "branch",      cmd_branch,      "List, create, or delete branches" },
 	{ "commit",      cmd_commit,      "Record changes to the repository" },
+	{ "diff",        cmd_diff,        "Show changes between commits" },
+	{ "show",        cmd_show,        "Show various types of objects" },
 	{ "status",      cmd_status,      "Show the working tree status" },
+	{ "tag",         cmd_tag,         "List, create, or delete tags" },
 	{ NULL }
 };
 

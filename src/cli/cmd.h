@@ -35,7 +35,11 @@ extern int cmd_index_pack(int argc, char **argv);
 extern int cmd_init(int argc, char **argv);
 extern int cmd_log(int argc, char **argv);
 extern int cmd_add(int argc, char **argv);
+extern int cmd_branch(int argc, char **argv);
 extern int cmd_commit(int argc, char **argv);
+extern int cmd_diff(int argc, char **argv);
+extern int cmd_show(int argc, char **argv);
 extern int cmd_status(int argc, char **argv);
+extern int cmd_tag(int argc, char **argv);
 
 #endif /* CLI_cmd_h__ */
