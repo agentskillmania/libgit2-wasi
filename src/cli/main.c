@@ -38,6 +38,7 @@ const cli_cmd_spec cli_cmds[] = {
 	{ "help",        cmd_help,        "Display help information" },
 	{ "index-pack",  cmd_index_pack,  "Create an index for a packfile" },
 	{ "init",        cmd_init,        "Create a new git repository" },
+	{ "status",      cmd_status,      "Show the working tree status" },
 	{ NULL }
 };
 

@@ -24,6 +24,7 @@ CATEGORIES=(
     "config"
     "hash-object"
     "cat-file"
+    "status"
     "clone-local"
     "clone-https"
     "blame"
@@ -148,6 +149,28 @@ test_cat_file() {
     is "$_STDOUT" "test content for cat-file" "cat-file -p shows blob content"
 }
 
+# ========================= Status =========================
+
+test_status() {
+    plan 5
+
+    # Empty repo
+    git2_run init /repo
+    git2_run_in repo status
+    is "$_EXIT" "0" "status on empty repo succeeds"
+
+    # With untracked file
+    mkfile repo/hello.txt "hello"
+    git2_run_in repo status
+    like "$_STDOUT" "Untracked files" "status shows untracked header"
+    like "$_STDOUT" "hello.txt" "status shows untracked filename"
+
+    # Short format
+    git2_run_in repo status -s
+    like "$_STDOUT" "\\?\\?" "short status shows ??"
+    like "$_STDOUT" "hello.txt" "short status shows filename"
+}
+
 # ========================= Clone (local) =========================
 
 test_clone_local() {
@@ -261,6 +284,7 @@ run_category() {
         config)       test_config ;;
         hash-object)  test_hash_object ;;
         cat-file)     test_cat_file ;;
+        status)       test_status ;;
         clone-local)  test_clone_local ;;
         clone-https)  test_clone_https ;;
         blame)        test_blame ;;
