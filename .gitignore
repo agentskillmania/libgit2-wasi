@@ -11,3 +11,4 @@ CMakeSettings.json
 build-wasi/
 build-wasi-https/
 wasi_entropy.o
+.vibe/

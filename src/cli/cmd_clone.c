@@ -18,6 +18,16 @@
 
 #define COMMAND_NAME "clone"
 
+/* WASI has no system CA bundle, accept all certificates. */
+static int cert_check_cb(git_cert *cert, int valid, const char *host, void *payload)
+{
+	GIT_UNUSED(cert);
+	GIT_UNUSED(valid);
+	GIT_UNUSED(host);
+	GIT_UNUSED(payload);
+	return 0;
+}
+
 static char *branch, *remote_path, *local_path, *depth;
 static int quiet, checkout = 1, bare;
 static bool local_path_exists;
@@ -146,6 +156,7 @@ int cmd_clone(int argc, char **argv)
 	clone_opts.bare = !!bare;
 	clone_opts.checkout_branch = branch;
 	clone_opts.fetch_opts.depth = compute_depth(depth);
+	clone_opts.fetch_opts.callbacks.certificate_check = cert_check_cb;
 
 	if (!checkout)
 		clone_opts.checkout_opts.checkout_strategy = GIT_CHECKOUT_NONE;
@@ -175,7 +186,13 @@ int cmd_clone(int argc, char **argv)
 	}
 
 	if (git_clone(&repo, remote_path, local_path, &clone_opts) < 0) {
+		const git_error *_e = git_error_last();
+		char _emsg[512] = {0};
+		if (_e && _e->message)
+			strncpy(_emsg, _e->message, sizeof(_emsg)-1);
 		cleanup();
+		if (_emsg[0])
+			git_error_set(_e ? _e->klass : GIT_ERROR_NET, "%s", _emsg);
 		ret = cli_error_git();
 		goto done;
 	}
