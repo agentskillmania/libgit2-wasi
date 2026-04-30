@@ -23,6 +23,7 @@ if(WIN32 AND NOT CYGWIN)
 elseif(NOT AMIGA)
 	file(GLOB UTIL_SRC_OS unix/*.c unix/*.h)
 	list(SORT UTIL_SRC_OS)
+	list(REMOVE_ITEM UTIL_SRC_OS "${CMAKE_CURRENT_SOURCE_DIR}/unix/process.c")
 endif()
 
 #

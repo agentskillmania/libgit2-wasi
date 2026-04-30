@@ -39,7 +39,7 @@
 # include "win32/w32_util.h"
 #endif
 
-bool git_repository__validate_ownership = true;
+bool git_repository__validate_ownership = false;
 bool git_repository__fsync_gitdir = false;
 
 static const struct {

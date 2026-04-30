@@ -6,3 +6,8 @@
 CMakeSettings.json
 .vs
 .idea
+
+# WASI build
+build-wasi/
+build-wasi-https/
+wasi_entropy.o

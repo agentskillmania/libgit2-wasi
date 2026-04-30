@@ -43,19 +43,21 @@ static int verify_last_error(git_filebuf *file)
 
 static int lock_file(git_filebuf *file, int flags, mode_t mode)
 {
-	if (git_fs_path_exists(file->path_lock) == true) {
+	const char *lock_path = file->path_lock;
+
+	if (git_fs_path_exists(lock_path) == true) {
 		git_error_clear(); /* actual OS error code just confuses */
 		git_error_set(GIT_ERROR_OS,
-			"failed to lock file '%s' for writing", file->path_lock);
+			"failed to lock file '%s' for writing", lock_path);
 		return GIT_ELOCKED;
 	}
 
 	/* create path to the file buffer is required */
 	if (flags & GIT_FILEBUF_CREATE_LEADING_DIRS) {
 		/* XXX: Should dirmode here be configurable? Or is 0777 always fine? */
-		file->fd = git_futils_creat_locked_withpath(file->path_lock, 0777, mode);
+		file->fd = git_futils_creat_locked_withpath(lock_path, 0777, mode);
 	} else {
-		file->fd = git_futils_creat_locked(file->path_lock, mode);
+		file->fd = git_futils_creat_locked(lock_path, mode);
 	}
 
 	if (file->fd < 0)
@@ -378,10 +380,28 @@ int git_filebuf_open_withsize(git_filebuf *file, const char *path, int flags, mo
 		}
 
 		/* open the file for locking */
-		if ((error = lock_file(file, flags, mode)) < 0)
-			goto cleanup;
+			/* inline lock_file to avoid WASI static call issue */
+			if (git_fs_path_exists(file->path_lock) == true) {
+				git_error_clear();
+				git_error_set(GIT_ERROR_OS,
+					"failed to lock file '%s' for writing", file->path_lock);
+				error = GIT_ELOCKED;
+				goto cleanup;
+			}
 
-		file->created_lock = true;
+			if (flags & GIT_FILEBUF_CREATE_LEADING_DIRS) {
+				file->fd = git_futils_creat_locked_withpath(file->path_lock, 0777, mode);
+			} else {
+				file->fd = git_futils_creat_locked(file->path_lock, mode);
+			}
+
+			if (file->fd < 0) {
+				error = file->fd;
+				goto cleanup;
+			}
+
+			file->fd_is_open = true;
+			file->created_lock = true;
 	}
 
 	return 0;
