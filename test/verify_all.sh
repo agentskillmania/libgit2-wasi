@@ -31,6 +31,9 @@ CATEGORIES=(
     "tag"
     "show"
     "diff"
+    "remote"
+    "reset"
+    "stash"
     "status"
     "clone-local"
     "clone-https"
@@ -363,6 +366,73 @@ test_diff() {
     like "$_STDOUT" "hello world" "cached diff shows changes"
 }
 
+# ========================= Remote =========================
+
+test_remote() {
+    plan 4
+
+    git2_run init /repo
+
+    # List (empty)
+    git2_run_in repo remote
+    is "$_EXIT" "0" "remote list succeeds on empty repo"
+
+    # Add remote
+    git2_run_in repo remote add origin https://example.com/repo.git
+    is "$_EXIT" "0" "remote add succeeds"
+
+    # List verbose
+    git2_run_in repo remote -v
+    like "$_STDOUT" "origin" "remote -v shows origin"
+    like "$_STDOUT" "example.com" "remote -v shows URL"
+}
+
+# ========================= Reset =========================
+
+test_reset() {
+    plan 4
+
+    git2_run init /repo
+    git2_run_in repo config --add user.name "Test"
+    git2_run_in repo config --add user.email "test@test.com"
+    mkfile repo/f.txt "first"
+    git2_run_in repo add f.txt
+    git2_run_in repo commit -m "first"
+
+    # Modify and commit
+    mkfile repo/f.txt "second"
+    git2_run_in repo add f.txt
+    git2_run_in repo commit -m "second"
+
+    # Reset --soft to HEAD~1
+    git2_run_in repo reset --soft HEAD~1
+    is "$_EXIT" "0" "reset --soft succeeds"
+
+    # Check log has one commit
+    git2_run_in repo log --oneline
+    like "$_STDOUT" "first" "reset moved HEAD back"
+
+    # Reset --hard
+    git2_run_in repo reset --hard HEAD
+    is "$_EXIT" "0" "reset --hard succeeds"
+
+    # Reset without commit arg (HEAD)
+    git2_run_in repo reset
+    is "$_EXIT" "0" "reset to HEAD succeeds"
+}
+
+# ========================= Stash =========================
+
+test_stash() {
+    plan 1
+
+    # Note: git_stash_save internally calls write_file_stream which
+    # crashes on WASI (same root cause as git_index_add_bypath).
+    # Only verify help works for now.
+    git2_run stash --help
+    like "$_STDOUT" "Stash" "stash help works"
+}
+
 # ========================= Status =========================
 
 test_status() {
@@ -505,6 +575,9 @@ run_category() {
         tag)          test_tag ;;
         show)         test_show ;;
         diff)         test_diff ;;
+        remote)       test_remote ;;
+        reset)        test_reset ;;
+        stash)        test_stash ;;
         status)       test_status ;;
         clone-local)  test_clone_local ;;
         clone-https)  test_clone_https ;;

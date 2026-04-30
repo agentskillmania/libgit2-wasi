@@ -38,7 +38,13 @@ extern int cmd_add(int argc, char **argv);
 extern int cmd_branch(int argc, char **argv);
 extern int cmd_commit(int argc, char **argv);
 extern int cmd_diff(int argc, char **argv);
+extern int cmd_fetch(int argc, char **argv);
+extern int cmd_pull(int argc, char **argv);
+extern int cmd_push(int argc, char **argv);
+extern int cmd_remote(int argc, char **argv);
+extern int cmd_reset(int argc, char **argv);
 extern int cmd_show(int argc, char **argv);
+extern int cmd_stash(int argc, char **argv);
 extern int cmd_status(int argc, char **argv);
 extern int cmd_tag(int argc, char **argv);
 

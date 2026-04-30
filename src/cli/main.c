@@ -43,7 +43,13 @@ const cli_cmd_spec cli_cmds[] = {
 	{ "branch",      cmd_branch,      "List, create, or delete branches" },
 	{ "commit",      cmd_commit,      "Record changes to the repository" },
 	{ "diff",        cmd_diff,        "Show changes between commits" },
+	{ "fetch",       cmd_fetch,       "Download objects from remote" },
+	{ "pull",        cmd_pull,        "Fetch and merge from remote" },
+	{ "push",        cmd_push,        "Upload objects to remote" },
+	{ "remote",      cmd_remote,      "Manage remote repositories" },
+	{ "reset",       cmd_reset,       "Reset current HEAD" },
 	{ "show",        cmd_show,        "Show various types of objects" },
+	{ "stash",       cmd_stash,       "Stash changes" },
 	{ "status",      cmd_status,      "Show the working tree status" },
 	{ "tag",         cmd_tag,         "List, create, or delete tags" },
 	{ NULL }
