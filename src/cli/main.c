@@ -91,7 +91,7 @@ static void help_args(int *argc, char **argv)
 	*argc = 1;
 }
 
-int main(int argc, char **argv)
+int git2_cli_main(int argc, char **argv)
 {
 	const cli_cmd_spec *cmd;
 	cli_opt_parser optparser;
