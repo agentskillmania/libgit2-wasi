@@ -84,18 +84,6 @@ int git_mbedtls_stream_global_init(void)
 
 	mbedtls_ssl_config_init(&mbedtls_config);
 	mbedtls_entropy_init(&mbedtls_entropy);
-
-	/* WASI: register custom entropy source (getentropy via wasi_entropy.c) */
-	#ifdef MBEDTLS_NO_PLATFORM_ENTROPY
-	{
-		extern int mbedtls_platform_entropy_poll(void *data,
-			unsigned char *output, size_t len, size_t *olen);
-		mbedtls_entropy_add_source(&mbedtls_entropy,
-			mbedtls_platform_entropy_poll, NULL, 32,
-			MBEDTLS_ENTROPY_SOURCE_STRONG);
-	}
-	#endif
-
 	mbedtls_ctr_drbg_init(&mbedtls_rng);
 
 	if (mbedtls_ssl_config_defaults(&mbedtls_config,
