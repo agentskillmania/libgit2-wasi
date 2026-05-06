@@ -64,7 +64,7 @@ mkdir -p "$BUILD_DIR/bindings" "$BUILD_DIR/obj"
 # --- Step 1: Generate guest bindings from WIT ---
 
 echo "--- Generating guest bindings ---"
-$WIT_BINDGEN c "$WIT_DIR" --world guest-subcommand --out-dir "$BUILD_DIR/bindings"
+$WIT_BINDGEN c "$WIT_DIR" --world guest-git --out-dir "$BUILD_DIR/bindings"
 
 # --- Step 2: Compiler flags ---
 
@@ -116,8 +116,8 @@ $CC $CFLAGS \
 
 echo "--- Compiling WIT bindings ---"
 $CC $CFLAGS \
-    -c "$BUILD_DIR/bindings/guest_subcommand.c" \
-    -o "$BUILD_DIR/obj/guest_subcommand.o"
+    -c "$BUILD_DIR/bindings/guest_git.c" \
+    -o "$BUILD_DIR/obj/guest_git.o"
 
 # --- Step 6: Link git-guest.wasm ---
 
@@ -130,8 +130,8 @@ $CC -O2 \
     -o "$BUILD_DIR/git-guest.wasm" \
     $CLI_OBJECTS \
     "$BUILD_DIR/obj/guest_main.o" \
-    "$BUILD_DIR/obj/guest_subcommand.o" \
-    "$BUILD_DIR/bindings/guest_subcommand_component_type.o" \
+    "$BUILD_DIR/obj/guest_git.o" \
+    "$BUILD_DIR/bindings/guest_git_component_type.o" \
     "$WASI_BUILD/libgit2.a" \
     "$MBEDTLS_LIB/libmbedtls.a" \
     "$MBEDTLS_LIB/libmbedx509.a" \
@@ -140,6 +140,7 @@ $CC -O2 \
     -lwasi-emulated-process-clocks \
     -lwasi-emulated-getpid \
     -Wl,--initial-memory=67108864 \
+    -Wl,--undefined=mbedtls_platform_entropy_poll \
     -Wl,--allow-undefined
 
 echo
