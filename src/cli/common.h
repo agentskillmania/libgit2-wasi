@@ -22,6 +22,7 @@
 
 extern int cli_opt__show_help;
 extern int cli_opt__use_pager;
+extern char *cli_opt__chdir;
 
 #define CLI_COMMON_OPT_HELP \
 	CLI_OPT_TYPE_SWITCH, "help",       0, &cli_opt__show_help,  1, \
@@ -40,11 +41,16 @@ extern int cli_opt__use_pager;
 	CLI_OPT_USAGE_HIDDEN, \
 	NULL, "don't paginate multi-page output"
 
+#define CLI_COMMON_OPT_CHDIR \
+	CLI_OPT_TYPE_VALUE,   "C",   'C', &cli_opt__chdir,        0, \
+	CLI_OPT_USAGE_DEFAULT, \
+	"dir", "change to directory before executing"
 #define CLI_COMMON_OPT \
 	{ CLI_COMMON_OPT_HELP }, \
 	{ CLI_COMMON_OPT_CONFIG }, \
 	{ CLI_COMMON_OPT_CONFIG_ENV }, \
-	{ CLI_COMMON_OPT_NO_PAGER }
+	{ CLI_COMMON_OPT_NO_PAGER }, \
+	{ CLI_COMMON_OPT_CHDIR }
 
 typedef struct {
 	char **args;

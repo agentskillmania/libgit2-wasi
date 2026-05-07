@@ -115,8 +115,15 @@ int cli_repository_open(
 	cli_repository_open_options *opts)
 {
 	git_repository *repo;
+	const char *path = ".";
 
-	if (git_repository_open_ext(&repo, ".", GIT_REPOSITORY_OPEN_FROM_ENV, NULL) < 0)
+	if (cli_opt__chdir) {
+		if (chdir(cli_opt__chdir) < 0)
+			return cli_error_os();
+		path = ".";
+	}
+
+	if (git_repository_open_ext(&repo, path, GIT_REPOSITORY_OPEN_FROM_ENV, NULL) < 0)
 		return -1;
 
 	if (opts && parse_common_options(repo, opts) < 0)

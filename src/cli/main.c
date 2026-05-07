@@ -12,6 +12,7 @@
 
 int cli_opt__show_help = 0;
 int cli_opt__use_pager = 1;
+char *cli_opt__chdir = NULL;
 
 static int show_version = 0;
 static char *command = NULL;
@@ -97,6 +98,15 @@ int git2_cli_main(int argc, char **argv)
 	cli_opt_parser optparser;
 	cli_opt opt;
 	int ret = 0;
+
+	/* Reset all static state from prior invocations (component model
+	 * reuses the same process, so statics persist across calls) */
+	show_version = 0;
+	command = NULL;
+	args = NULL;
+	cli_opt__show_help = 0;
+	cli_opt__use_pager = 1;
+	cli_opt__chdir = NULL;
 
 	if (git_libgit2_init() < 0) {
 		cli_error("failed to initialize libgit2");
