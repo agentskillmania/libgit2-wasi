@@ -48,6 +48,7 @@ cmake .. \
     -DCMAKE_SYSTEM_NAME=Generic \
     -DCMAKE_C_FLAGS="-DNO_MMAP -D__unix__ -D_WASI_EMULATED_SIGNAL -DMBEDTLS_NO_PLATFORM_ENTROPY -Wno-incompatible-pointer-types -I${SCRIPT_DIR}/wasi_include -Dgetuid\(\)=getpid\(\) -Dgeteuid\(\)=getpid\(\) -Dgetppid\(\)=getpid\(\) -Dgetpgid\(a\)=getpid\(\) -Dgetsid\(a\)=getpid\(\) -Dgetgid\(\)=getpid\(\)" \
     -DCMAKE_EXE_LINKER_FLAGS="-lwasi-emulated-signal -lwasi-emulated-process-clocks -lwasi-emulated-getpid -Wl,--initial-memory=67108864" \
+    -DUSE_THREADS=OFF \
     -DUSE_HTTPS=mbedTLS \
     -DMBEDTLS_INCLUDE_DIR="$MBEDTLS_INC" \
     -DMBEDTLS_LIBRARY="$MBEDTLS_LIB/libmbedtls.a" \
