@@ -1,18 +1,32 @@
 /**
  * Component guest wrapper for libgit2 CLI.
  * Converts WIT git interface args to argc/argv and calls git2_cli_main.
+ * Sets the guest's working directory from the host-provided cwd before execution.
  */
 #include "guest_git.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 /* Forward declaration - renamed main() in libgit2 CLI */
 extern int git2_cli_main(int argc, char **argv);
 
 int32_t exports_agentskillmania_subcommand_git_execute(
+    guest_git_string_t *cwd,
     guest_git_list_string_t *args)
 {
+    /* Sync guest cwd with host */
+    if (cwd->len > 0) {
+        char *s = malloc(cwd->len + 1);
+        if (s) {
+            memcpy(s, cwd->ptr, cwd->len);
+            s[cwd->len] = '\0';
+            chdir(s);
+            free(s);
+        }
+    }
+
     int argc = (int)args->len;
     if (argc == 0) return 1;
 
