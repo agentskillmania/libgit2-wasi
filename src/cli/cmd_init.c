@@ -87,7 +87,7 @@ int cmd_init(int argc, char **argv)
 
 		repo_path = git_dir;
 	} else {
-		repo_path = path;
+		repo_path = path ? path : ".";
 	}
 
 	if (git_repository_init_ext(&repo, repo_path, &init_opts) < 0) {
