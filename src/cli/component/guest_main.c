@@ -2,6 +2,7 @@
  * Component guest wrapper for libgit2 CLI.
  * Converts WIT git interface args to argc/argv and calls git2_cli_main.
  * Sets the guest's working directory from the host-provided cwd before execution.
+ * Redirects stdout/stdin if the host provides file paths (for pipeline/redirect support).
  */
 #include "guest_git.h"
 #include <stdio.h>
@@ -14,7 +15,9 @@ extern int git2_cli_main(int argc, char **argv);
 
 int32_t exports_agentskillmania_subcommand_git_execute(
     guest_git_string_t *cwd,
-    guest_git_list_string_t *args)
+    guest_git_list_string_t *args,
+    guest_git_string_t *stdout_file,
+    guest_git_string_t *stdin_file)
 {
     /* Sync guest cwd with host */
     if (cwd->len > 0) {
@@ -23,6 +26,28 @@ int32_t exports_agentskillmania_subcommand_git_execute(
             memcpy(s, cwd->ptr, cwd->len);
             s[cwd->len] = '\0';
             chdir(s);
+            free(s);
+        }
+    }
+
+    /* Redirect stdout if host requests it (for pipelines/redirects) */
+    if (stdout_file->len > 0) {
+        char *s = malloc(stdout_file->len + 1);
+        if (s) {
+            memcpy(s, stdout_file->ptr, stdout_file->len);
+            s[stdout_file->len] = '\0';
+            freopen(s, "w", stdout);
+            free(s);
+        }
+    }
+
+    /* Redirect stdin if host requests it (for pipeline input) */
+    if (stdin_file->len > 0) {
+        char *s = malloc(stdin_file->len + 1);
+        if (s) {
+            memcpy(s, stdin_file->ptr, stdin_file->len);
+            s[stdin_file->len] = '\0';
+            freopen(s, "r", stdin);
             free(s);
         }
     }
