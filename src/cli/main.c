@@ -157,3 +157,10 @@ done:
 	git_libgit2_shutdown();
 	return ret;
 }
+
+#ifndef __wasi__
+int main(int argc, char **argv)
+{
+	return git2_cli_main(argc, argv);
+}
+#endif

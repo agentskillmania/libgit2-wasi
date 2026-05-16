@@ -58,6 +58,9 @@ int cmd_pull(int argc, char **argv)
 	cli_opt invalid_opt;
 	int ret = 0;
 
+	quiet = 0;
+	remote_name_arg = NULL;
+
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);
 
@@ -143,10 +146,15 @@ int cmd_pull(int argc, char **argv)
 		} else if (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE) {
 			if (!quiet)
 				printf("Already up to date.\n");
-		} else {
-			fprintf(stderr,
-				"git2: cannot fast-forward, merge required (not supported)\n");
+		} else if (analysis & GIT_MERGE_ANALYSIS_NORMAL) {
+			if (!quiet) {
+				printf("hint: You have diverged from '%s' and need to merge.\n", remote_head_name);
+				printf("hint: Merge is not supported in this environment; consider resetting or force-pushing.\n");
+			}
 			ret = 1;
+		} else {
+			if (!quiet)
+				printf("Already up to date.\n");
 		}
 	}
 

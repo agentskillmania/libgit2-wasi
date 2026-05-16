@@ -14,7 +14,7 @@
 
 #define COMMAND_NAME "checkout"
 
-static int create_branch;
+static int create_branch, force_branch, track_branch;
 static char **args;
 
 static const cli_opt_spec opts[] = {
@@ -22,6 +22,11 @@ static const cli_opt_spec opts[] = {
 
 	{ CLI_OPT_TYPE_SWITCH, "branch", 'b', &create_branch, 1,
 	  CLI_OPT_USAGE_DEFAULT, NULL, "create and switch to new branch" },
+	{ CLI_OPT_TYPE_SWITCH, NULL,     'B', &force_branch, 1,
+	  CLI_OPT_USAGE_DEFAULT, NULL, "create/reset and switch to branch" },
+	{ CLI_OPT_TYPE_SWITCH, "track",  0,  &track_branch, 1,
+	  CLI_OPT_USAGE_DEFAULT, NULL, "set upstream tracking" },
+	{ CLI_OPT_TYPE_LITERAL },
 	{ CLI_OPT_TYPE_ARGS, "args", 0, &args, 0,
 	  CLI_OPT_USAGE_DEFAULT, "args", "branch name or file paths" },
 	{ 0 }
@@ -106,7 +111,7 @@ done:
 	return ret;
 }
 
-static int create_and_switch(git_repository *repo, const char *branch_name)
+static int create_and_switch(git_repository *repo, const char *branch_name, int force, const char *upstream)
 {
 	git_reference *ref = NULL, *head = NULL;
 	git_commit *commit = NULL;
@@ -123,9 +128,13 @@ static int create_and_switch(git_repository *repo, const char *branch_name)
 		goto done;
 	}
 
-	if (git_branch_create(&ref, repo, branch_name, commit, 0) < 0) {
+	if (git_branch_create(&ref, repo, branch_name, commit, force) < 0) {
 		ret = cli_error_git();
 		goto done;
+	}
+
+	if (upstream) {
+		git_branch_set_upstream(ref, upstream);
 	}
 
 done:
@@ -173,6 +182,12 @@ int cmd_checkout(int argc, char **argv)
 	cli_repository_open_options open_opts = { argv + 1, argc - 1 };
 	cli_opt invalid_opt;
 	int ret = 0;
+	int has_dashdash = 0, i;
+
+	create_branch = 0;
+	force_branch = 0;
+	track_branch = 0;
+	args = NULL;
 
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);
@@ -182,6 +197,15 @@ int cmd_checkout(int argc, char **argv)
 		return 0;
 	}
 
+	/* Detect whether '--' was explicitly given; cli_opt_parse consumes it
+	 * as CLI_OPT_TYPE_LITERAL so it does not appear in args[]. */
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "--") == 0) {
+			has_dashdash = 1;
+			break;
+		}
+	}
+
 	if (!args || !args[0]) {
 		return cli_error_usage("no branch or file specified");
 	}
@@ -189,15 +213,21 @@ int cmd_checkout(int argc, char **argv)
 	if (cli_repository_open(&repo, &open_opts) < 0)
 		return cli_error_git();
 
-	if (create_branch) {
-		ret = create_and_switch(repo, args[0]);
-	} else if (strcmp(args[0], "--") == 0) {
+	if (create_branch || force_branch) {
+		const char *upstream = track_branch && args[1] ? args[1] : NULL;
+		ret = create_and_switch(repo, args[0], force_branch ? 1 : 0, upstream);
+	} else if (track_branch) {
+		/* checkout --track origin/branch */
+		const char *remote_branch = args[0];
+		const char *local_branch = remote_branch;
+		if (strncmp(local_branch, "refs/remotes/", 13) == 0)
+			local_branch += 13;
+		else if (strncmp(local_branch, "origin/", 7) == 0)
+			local_branch += 7;
+		ret = create_and_switch(repo, local_branch, 0, remote_branch);
+	} else if (has_dashdash) {
 		/* git checkout -- <file>... : restore files from HEAD */
-		if (!args[1]) {
-			ret = cli_error_usage("no file specified after --");
-		} else {
-			ret = restore_files(repo, args + 1);
-		}
+		ret = restore_files(repo, args);
 	} else {
 		ret = switch_branch(repo, args[0]);
 	}

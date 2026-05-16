@@ -10,6 +10,7 @@
 #include "common.h"
 #include "cmd.h"
 #include "error.h"
+#include "futils.h"
 
 #define COMMAND_NAME "add"
 
@@ -89,6 +90,13 @@ int cmd_add(int argc, char **argv)
 	cli_opt invalid_opt;
 	int ret = 0;
 
+	/* Reset static state */
+	verbose = 0;
+	force = 0;
+	all_flag = 0;
+	update_flag = 0;
+	pathspecs = NULL;
+
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);
 
@@ -117,16 +125,32 @@ int cmd_add(int argc, char **argv)
 		}
 	} else {
 		char **p;
+		size_t count = 0;
+		git_strarray arr = { NULL, 0 };
+
 		if (!pathspecs || !pathspecs[0]) {
 			ret = cli_error_usage("Nothing specified, nothing added.");
 			goto done;
 		}
-		for (p = pathspecs; *p; p++) {
-			if (stage_file(index, repo, *p) < 0) {
-				ret = cli_error_git();
-				goto done;
+
+		for (p = pathspecs; *p; p++)
+			count++;
+
+		arr.strings = pathspecs;
+		arr.count = count;
+
+		if (git_index_add_all(index, &arr, 0, NULL, NULL) < 0) {
+			/* Fallback to manual staging for WASI compatibility */
+			for (p = pathspecs; *p; p++) {
+				if (stage_file(index, repo, *p) < 0) {
+					ret = cli_error_git();
+					goto done;
+				}
+				if (verbose)
+					printf("add '%s'\n", *p);
 			}
-			if (verbose)
+		} else if (verbose) {
+			for (p = pathspecs; *p; p++)
 				printf("add '%s'\n", *p);
 		}
 	}

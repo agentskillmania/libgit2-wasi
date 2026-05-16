@@ -1,4 +1,5 @@
 /build/
+build-native/
 .DS_Store
 *~
 .*.swp

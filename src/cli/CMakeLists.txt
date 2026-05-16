@@ -43,6 +43,14 @@ target_link_libraries(git2_cli ${CLI_LIBGIT2_LIBRARY} ${LIBGIT2_SYSTEM_LIBS})
 set_target_properties(git2_cli PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${libgit2_BINARY_DIR})
 set_target_properties(git2_cli PROPERTIES OUTPUT_NAME ${LIBGIT2_FILENAME})
 
+# Also produce git2.wasm for consistency with build_wasi.sh and wasi_test/
+add_custom_command(TARGET git2_cli POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy
+		"$<TARGET_FILE:git2_cli>"
+		"${libgit2_BINARY_DIR}/${LIBGIT2_FILENAME}.wasm"
+	COMMENT "Copying ${LIBGIT2_FILENAME} to ${LIBGIT2_FILENAME}.wasm"
+)
+
 ide_split_sources(git2_cli)
 
 target_include_directories(git2_cli PRIVATE ${CLI_INCLUDES})

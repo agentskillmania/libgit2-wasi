@@ -15,10 +15,13 @@
 #define COMMAND_NAME "stash"
 
 static char *subcommand;
+static char *message;
 
 static const cli_opt_spec opts[] = {
 	CLI_COMMON_OPT,
 
+	{ CLI_OPT_TYPE_VALUE, "message", 'm', &message, 0,
+	  CLI_OPT_USAGE_DEFAULT, "message", "stash message" },
 	{ CLI_OPT_TYPE_ARG, "subcommand", 0, &subcommand, 0,
 	  CLI_OPT_USAGE_DEFAULT, "subcommand", "subcommand (list, pop, drop)" },
 	{ 0 }
@@ -52,7 +55,7 @@ static int do_stash_push(git_repository *repo)
 	if (git_signature_default(&sig, repo) < 0)
 		return cli_error_git();
 
-	if (git_stash_save(&stash_id, repo, sig, NULL, GIT_STASH_DEFAULT) < 0) {
+	if (git_stash_save(&stash_id, repo, sig, message, GIT_STASH_DEFAULT) < 0) {
 		ret = cli_error_git();
 		goto done;
 	}
@@ -99,6 +102,9 @@ int cmd_stash(int argc, char **argv)
 	cli_repository_open_options open_opts = { argv + 1, argc - 1 };
 	cli_opt invalid_opt;
 	int ret = 0;
+
+	subcommand = NULL;
+	message = NULL;
 
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);

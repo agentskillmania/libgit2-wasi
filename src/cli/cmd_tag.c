@@ -13,12 +13,16 @@
 
 #define COMMAND_NAME "tag"
 
-static int delete_tag;
-static char *tag_name;
+static int delete_tag, annotate;
+static char *tag_name, *message;
 
 static const cli_opt_spec opts[] = {
 	CLI_COMMON_OPT,
 
+	{ CLI_OPT_TYPE_SWITCH, "annotate", 'a', &annotate, 1,
+	  CLI_OPT_USAGE_DEFAULT, NULL, "create an annotated tag" },
+	{ CLI_OPT_TYPE_VALUE, "message", 'm', &message, 0,
+	  CLI_OPT_USAGE_DEFAULT, "message", "tag message" },
 	{ CLI_OPT_TYPE_SWITCH, "delete", 'd', &delete_tag, 1,
 	  CLI_OPT_USAGE_DEFAULT, NULL, "delete a tag" },
 	{ CLI_OPT_TYPE_ARG, "tagname", 0, &tag_name, 0,
@@ -55,6 +59,7 @@ static int create_tag(git_repository *repo, const char *name)
 {
 	git_reference *head = NULL;
 	git_object *target = NULL;
+	git_signature *tagger = NULL;
 	git_oid tag_id;
 	int ret = 0;
 
@@ -66,12 +71,25 @@ static int create_tag(git_repository *repo, const char *name)
 		goto done;
 	}
 
-	if (git_tag_create_lightweight(&tag_id, repo, name, target, 0) < 0) {
-		ret = cli_error_git();
-		goto done;
+	if (annotate || message) {
+		if (git_signature_default(&tagger, repo) < 0) {
+			ret = cli_error_git();
+			goto done;
+		}
+		if (git_tag_create(&tag_id, repo, name, target, tagger,
+		    message ? message : name, 0) < 0) {
+			ret = cli_error_git();
+			goto done;
+		}
+	} else {
+		if (git_tag_create_lightweight(&tag_id, repo, name, target, 0) < 0) {
+			ret = cli_error_git();
+			goto done;
+		}
 	}
 
 done:
+	git_signature_free(tagger);
 	git_object_free(target);
 	git_reference_free(head);
 	return ret;
@@ -91,6 +109,11 @@ int cmd_tag(int argc, char **argv)
 	cli_repository_open_options open_opts = { argv + 1, argc - 1 };
 	cli_opt invalid_opt;
 	int ret = 0;
+
+	delete_tag = 0;
+	annotate = 0;
+	tag_name = NULL;
+	message = NULL;
 
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);

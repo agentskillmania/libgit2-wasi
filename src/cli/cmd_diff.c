@@ -21,6 +21,8 @@ static const cli_opt_spec opts[] = {
 
 	{ CLI_OPT_TYPE_SWITCH, "cached", 0, &cached, 1,
 	  CLI_OPT_USAGE_DEFAULT, NULL, "show staged changes" },
+	{ CLI_OPT_TYPE_SWITCH, "staged", 0, &cached, 1,
+	  CLI_OPT_USAGE_DEFAULT, NULL, "show staged changes" },
 	{ CLI_OPT_TYPE_SWITCH, "stat",   0, &stat_only, 1,
 	  CLI_OPT_USAGE_DEFAULT, NULL, "show stat summary only" },
 	{ CLI_OPT_TYPE_ARGS, "pathspec", 0, &pathspecs, 0,
@@ -45,6 +47,10 @@ int cmd_diff(int argc, char **argv)
 	cli_repository_open_options open_opts = { argv + 1, argc - 1 };
 	cli_opt invalid_opt;
 	int ret = 0;
+
+	cached = 0;
+	stat_only = 0;
+	pathspecs = NULL;
 
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);

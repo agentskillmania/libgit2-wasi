@@ -49,9 +49,18 @@ int cmd_commit(int argc, char **argv)
 	git_tree *tree = NULL;
 	git_commit *parent = NULL;
 	git_reference *ref = NULL;
+	git_commit *head_commit = NULL;
+	char message_buf[4096];
+	const char *commit_message;
 	cli_repository_open_options open_opts = { argv + 1, argc - 1 };
 	cli_opt invalid_opt;
 	int ret = 0, is_initial = 0;
+
+	message = NULL;
+	author_name = NULL;
+	author_email = NULL;
+	quiet = 0;
+	amend = 0;
 
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);
@@ -61,12 +70,31 @@ int cmd_commit(int argc, char **argv)
 		return 0;
 	}
 
-	if (!message) {
-		return cli_error_usage("switch `m' requires a value");
-	}
+	commit_message = message;
 
 	if (cli_repository_open(&repo, &open_opts) < 0)
 		return cli_error_git();
+
+	if (!commit_message && amend) {
+		git_reference *head_ref = NULL;
+		if (git_repository_head(&head_ref, repo) == 0) {
+			if (git_commit_lookup(&head_commit, repo,
+			        git_reference_target(head_ref)) == 0) {
+				const char *msg = git_commit_message(head_commit);
+				if (msg) {
+					strncpy(message_buf, msg, sizeof(message_buf) - 1);
+					message_buf[sizeof(message_buf) - 1] = '\0';
+					commit_message = message_buf;
+				}
+			}
+		}
+		git_reference_free(head_ref);
+	}
+
+	if (!commit_message) {
+		git_commit_free(head_commit);
+		return cli_error_usage("switch `m' requires a value");
+	}
 
 	if (git_repository_index(&index, repo) < 0) {
 		ret = cli_error_git();
@@ -86,7 +114,7 @@ int cmd_commit(int argc, char **argv)
 	}
 
 	/* For non-initial commits, check that tree differs from HEAD */
-	if (!git_repository_head_unborn(repo)) {
+	if (!amend && !git_repository_head_unborn(repo)) {
 		git_reference *head_ref = NULL;
 		git_commit *head_commit = NULL;
 		git_tree *head_tree = NULL;
@@ -128,7 +156,7 @@ int cmd_commit(int argc, char **argv)
 	if (is_initial) {
 		/* Initial commit -- no parent */
 		if (git_commit_create_v(&commit_id, repo, "HEAD", sig, sig,
-		        NULL, message, tree, 0) < 0) {
+		        NULL, commit_message, tree, 0) < 0) {
 			ret = cli_error_git();
 			goto done;
 		}
@@ -143,7 +171,7 @@ int cmd_commit(int argc, char **argv)
 			goto done;
 		}
 		if (git_commit_create_v(&commit_id, repo, "HEAD", sig, sig,
-		        NULL, message, tree, 1, parent) < 0) {
+		        NULL, commit_message, tree, 1, parent) < 0) {
 			ret = cli_error_git();
 			goto done;
 		}
@@ -158,7 +186,7 @@ int cmd_commit(int argc, char **argv)
 			goto done;
 		}
 		if (git_commit_create_v(&commit_id, repo, "HEAD", sig, sig,
-		        NULL, message, tree, 1, parent) < 0) {
+		        NULL, commit_message, tree, 1, parent) < 0) {
 			ret = cli_error_git();
 			goto done;
 		}
@@ -179,12 +207,13 @@ int cmd_commit(int argc, char **argv)
 				branch = git_reference_shorthand(h);
 			git_reference_free(h);
 		}
-		printf("[%s %s] %s\n", branch, short_oid, message);
+		printf("[%s %s] %s\n", branch, short_oid, commit_message);
 	}
 
 done:
 	git_reference_free(ref);
 	git_commit_free(parent);
+	git_commit_free(head_commit);
 	git_tree_free(tree);
 	git_signature_free(sig);
 	git_index_free(index);

@@ -17,7 +17,8 @@
 #define COMMAND_NAME "log"
 
 static int oneline, max_count = -1;
-static char *format;
+static char *format, *max_count_str;
+static char **args;
 
 static const cli_opt_spec opts[] = {
 	CLI_COMMON_OPT,
@@ -26,8 +27,10 @@ static const cli_opt_spec opts[] = {
 	  CLI_OPT_USAGE_DEFAULT, NULL, "shorthand for '--format=oneline'" },
 	{ CLI_OPT_TYPE_VALUE,  "format",  0, &format, 0,
 	  CLI_OPT_USAGE_DEFAULT, "format", "pretty-print format" },
-	{ CLI_OPT_TYPE_VALUE,  "max-count", 'n', &max_count, 0,
+	{ CLI_OPT_TYPE_VALUE,  "max-count", 'n', &max_count_str, 0,
 	  CLI_OPT_USAGE_DEFAULT, "n", "limit number of commits" },
+	{ CLI_OPT_TYPE_ARGS,   "args",    0, &args, 0,
+	  CLI_OPT_USAGE_DEFAULT, "args", "revision range or commit" },
 	{ 0 }
 };
 
@@ -73,6 +76,11 @@ static void print_commit_default(const git_commit *commit, const char *refs_str)
 		printf(" (%s)", refs_str);
 	printf("\n");
 	printf("Author: %s <%s>\n", author->name, author->email);
+	{
+		const git_signature *committer = git_commit_committer(commit);
+		if (committer)
+			printf("Committer: %s <%s>\n", committer->name, committer->email);
+	}
 	printf("Date:   %s\n", date_buf);
 	printf("\n");
 
@@ -120,6 +128,12 @@ int cmd_log(int argc, char **argv)
 	git_oid oid;
 	int ret = 0, count = 0;
 
+	oneline = 0;
+	max_count = -1;
+	max_count_str = NULL;
+	format = NULL;
+	args = NULL;
+
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);
 
@@ -128,16 +142,11 @@ int cmd_log(int argc, char **argv)
 		return 0;
 	}
 
+	if (max_count_str)
+		max_count = atoi(max_count_str);
+
 	if (cli_repository_open(&repo, &open_opts) < 0)
 		return cli_error_git();
-
-	if (git_repository_head(&head_ref, repo) < 0) {
-		fprintf(stderr, "git2: your current branch does not have any commits yet\n");
-		ret = 128;
-		goto done;
-	}
-
-	oid = *git_reference_target(head_ref);
 
 	if (git_revwalk_new(&walker, repo) < 0) {
 		ret = cli_error_git();
@@ -145,7 +154,52 @@ int cmd_log(int argc, char **argv)
 	}
 
 	git_revwalk_sorting(walker, GIT_SORT_TIME);
-	git_revwalk_push(walker, &oid);
+
+	if (git_repository_head(&head_ref, repo) == 0) {
+		/* head_ref obtained for decoration */
+	}
+
+	if (args && args[0]) {
+		char *range = args[0];
+		char *dots = strstr(range, "..");
+
+		if (dots && dots != range && *(dots + 2) != '.') {
+			/* Range syntax: left..right */
+			git_object *left = NULL, *right = NULL;
+			char *left_str = range;
+			char *right_str = dots + 2;
+			*dots = '\0';
+
+			if (git_revparse_single(&left, repo, left_str) < 0 ||
+			    git_revparse_single(&right, repo, right_str) < 0) {
+				*dots = '.';
+				ret = cli_error_git();
+				goto done;
+			}
+
+			git_revwalk_hide(walker, git_object_id(left));
+			git_revwalk_push(walker, git_object_id(right));
+			git_object_free(left);
+			git_object_free(right);
+			*dots = '.';
+		} else {
+			/* Single commit */
+			git_object *obj = NULL;
+			if (git_revparse_single(&obj, repo, range) < 0) {
+				ret = cli_error_git();
+				goto done;
+			}
+			git_revwalk_push(walker, git_object_id(obj));
+			git_object_free(obj);
+		}
+	} else if (head_ref) {
+		oid = *git_reference_target(head_ref);
+		git_revwalk_push(walker, &oid);
+	} else {
+		fprintf(stderr, "git2: your current branch does not have any commits yet\n");
+		ret = 128;
+		goto done;
+	}
 
 	while (git_revwalk_next(&oid, walker) == 0) {
 		const char *ref_str = NULL;

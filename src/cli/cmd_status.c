@@ -99,7 +99,31 @@ static int print_long(git_repository *repo, git_status_list *statuses)
 
 	/* Branch / commit info */
 	if (git_repository_head(&head, repo) == 0) {
+		git_reference *upstream = NULL;
 		printf("On branch %s\n", git_reference_shorthand(head));
+		if (git_branch_upstream(&upstream, head) == 0) {
+			size_t ahead = 0, behind = 0;
+			const git_oid *local_oid = git_reference_target(head);
+			const git_oid *upstream_oid = git_reference_target(upstream);
+			if (local_oid && upstream_oid &&
+			    git_graph_ahead_behind(&ahead, &behind, repo, local_oid, upstream_oid) == 0) {
+				if (ahead && behind) {
+					printf("Your branch and '%s' have diverged,\n",
+					       git_reference_shorthand(upstream));
+					printf("and have %zu and %zu different commits each, respectively.\n",
+					       ahead, behind);
+				} else if (ahead) {
+					printf("Your branch is ahead of '%s' by %zu commit%s.\n",
+					       git_reference_shorthand(upstream), ahead,
+					       ahead > 1 ? "s" : "");
+				} else if (behind) {
+					printf("Your branch is behind '%s' by %zu commit%s.\n",
+					       git_reference_shorthand(upstream), behind,
+					       behind > 1 ? "s" : "");
+				}
+			}
+			git_reference_free(upstream);
+		}
 	} else if (git_repository_head_unborn(repo)) {
 		printf("On branch main\n\nNo commits yet\n");
 	} else {
@@ -190,6 +214,9 @@ int cmd_status(int argc, char **argv)
 	git_status_options status_opts = GIT_STATUS_OPTIONS_INIT;
 	cli_opt invalid_opt;
 	int ret = 0;
+
+	short_format = 0;
+	pathspecs = NULL;
 
 	if (cli_opt_parse(&invalid_opt, opts, argv + 1, argc - 1, CLI_OPT_PARSE_GNU))
 		return cli_opt_usage_error(COMMAND_NAME, opts, &invalid_opt);
