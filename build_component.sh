@@ -140,6 +140,7 @@ $CC -O2 \
     -lwasi-emulated-process-clocks \
     -lwasi-emulated-getpid \
     -Wl,--initial-memory=67108864 \
+    -Wl,-z,stack-size=2097152 \
     -Wl,--undefined=mbedtls_platform_entropy_poll \
     -Wl,--allow-undefined
 
